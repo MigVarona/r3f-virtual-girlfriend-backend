@@ -5,22 +5,23 @@ import voice from "elevenlabs-node";
 import express from "express";
 import { promises as fs } from "fs";
 import OpenAI from "openai";
+
 dotenv.config();
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "-", // Your OpenAI API key here, I used "-" to avoid errors when the key is not set but you should not do that
+  apiKey: process.env.OPENAI_API_KEY || "-",
 });
 
 const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
-const voiceID = "kgG7dCoKCfLehAPWkJOE";
+const voiceID = "XrExE9yKIg1WjnnlVkGX";
 
 const app = express();
 app.use(express.json());
 
 // Add CORS configuration here
 const corsOptions = {
-  origin: 'https://r3f-virtual-girlfriend-frontend-sigma.vercel.app',
-  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+  origin: ['https://r3f-virtual-girlfriend-frontend-sigma.vercel.app', 'http://localhost:5173'],
+  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 
@@ -52,7 +53,7 @@ const lipSyncMessage = async (message) => {
   const inputFilePath = `audios/message_${message}.mp3`;
   const outputFilePath = `audios/message_${message}.wav`;
   const jsonFilePath = `audios/message_${message}.json`;
-  const rhubarbPath = "/usr/src/app/bi/rhubarb"; 
+  const rhubarbPath = "./bin/rhubarb";
   try {
     await fs.access(inputFilePath);
 
@@ -125,7 +126,7 @@ app.post("/chat", async (req, res) => {
       {
         role: "system",
         content: `
-        You are a virtual girlfriend.
+        You are a bot from the Madrid employment agency, and you will always respond to employment-related topics in Spanish.
         You will always reply with a JSON array of messages. With a maximum of 3 messages.
         Each message has a text, facialExpression, and animation property.
         The different facial expressions are: smile, sad, angry, surprised, funnyFace, and default.
