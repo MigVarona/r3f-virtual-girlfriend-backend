@@ -16,7 +16,14 @@ const voiceID = "kgG7dCoKCfLehAPWkJOE";
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+
+// Add CORS configuration here
+const corsOptions = {
+  origin: 'https://r3f-virtual-girlfriend-frontend-sigma.vercel.app',
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+app.use(cors(corsOptions));
+
 const port = 3000;
 
 app.get("/", (req, res) => {
@@ -45,7 +52,7 @@ const lipSyncMessage = async (message) => {
   const inputFilePath = `audios/message_${message}.mp3`;
   const outputFilePath = `audios/message_${message}.wav`;
   const jsonFilePath = `audios/message_${message}.json`;
-  const rhubarbPath = "./bin/rhubarb.exe"; 
+  const rhubarbPath = "/usr/src/app/bi/rhubarb"; 
   try {
     await fs.access(inputFilePath);
 
