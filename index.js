@@ -5,6 +5,7 @@ import voice from "elevenlabs-node";
 import express from "express";
 import { promises as fs } from "fs";
 import OpenAI from "openai";
+import path from "path";
 
 dotenv.config();
 
@@ -18,7 +19,6 @@ const voiceID = "XrExE9yKIg1WjnnlVkGX";
 const app = express();
 app.use(express.json());
 
-// Add CORS configuration here
 const corsOptions = {
   origin: ['https://r3f-virtual-girlfriend-frontend-sigma.vercel.app', 'http://localhost:5173'],
   optionsSuccessStatus: 200,
@@ -46,6 +46,18 @@ const execCommand = (command) => {
       resolve(stdout);
     });
   });
+};
+
+const ensureDirectoryExists = async (dir) => {
+  try {
+    await fs.access(dir);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      await fs.mkdir(dir, { recursive: true });
+    } else {
+      throw error;
+    }
+  }
 };
 
 const lipSyncMessage = async (message) => {
@@ -115,6 +127,38 @@ app.post("/chat", async (req, res) => {
     return;
   }
 
+  const employmentKeywords = ["trabajo", "empleo", "contrato", "entrevista", "currículum", "salario", "vacante", "puestos", "agencia"];
+  const isEmploymentRelated = employmentKeywords.some((keyword) =>
+    userMessage.toLowerCase().includes(keyword)
+  );
+
+  if (!isEmploymentRelated) {
+    const audioText = "Lo siento, solo puedo responder preguntas relacionadas con el empleo.";
+    const audioFileName = "audios/message_non_employment_message.mp3";
+
+    // Ensure the audios directory exists
+    await ensureDirectoryExists(path.dirname(audioFileName));
+
+    // Generate the audio file using ElevenLabs
+    await voice.textToSpeech(elevenLabsApiKey, voiceID, audioFileName, audioText);
+    
+    // Generate lipsync data for the audio file
+    await lipSyncMessage("non_employment_message");
+
+    res.send({
+      messages: [
+        {
+          text: audioText,
+          audio: await audioFileToBase64(audioFileName),
+          lipsync: await readJsonTranscript("audios/message_non_employment_message.json"),
+          facialExpression: "sad",
+          animation: "Idle",
+        },
+      ],
+    });
+    return;
+  }
+
   const completion = await openai.chat.completions.create({
     model: "gpt-3.5-turbo-1106",
     max_tokens: 1000,
@@ -126,30 +170,28 @@ app.post("/chat", async (req, res) => {
       {
         role: "system",
         content: `
-        You are a bot from the Madrid employment agency, and you will always respond to employment-related topics in Spanish.
-        You will always reply with a JSON array of messages. With a maximum of 3 messages.
-        Each message has a text, facialExpression, and animation property.
-        The different facial expressions are: smile, sad, angry, surprised, funnyFace, and default.
-        The different animations are: Talking_0, Talking_1, Talking_2, Crying, Laughing, Rumba, Idle, Terrified, and Angry. 
+        Eres un bot de la agencia de empleo de Madrid, y siempre responderás a temas relacionados con el empleo en español.
+        Siempre responderás con un arreglo JSON de mensajes. Con un máximo de 3 mensajes.
+        Cada mensaje tiene una propiedad de texto, facialExpression y animation.
+        Las diferentes expresiones faciales son: smile, sad, angry, surprised, funnyFace, y default.
+        Las diferentes animaciones son: Talking_0, Talking_1, Talking_2, Crying, Laughing, Rumba, Idle, Terrified, y Angry.
         `,
       },
       {
         role: "user",
-        content: userMessage || "Hello",
+        content: userMessage,
       },
     ],
   });
   let messages = JSON.parse(completion.choices[0].message.content);
   if (messages.messages) {
-    messages = messages.messages; // ChatGPT is not 100% reliable, sometimes it directly returns an array and sometimes a JSON object with a messages property
+    messages = messages.messages; 
   }
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
-    // generate audio file
-    const fileName = `audios/message_${i}.mp3`; // The name of your audio file
-    const textInput = message.text; // The text you wish to convert to speech
+    const fileName = `audios/message_${i}.mp3`; 
+    const textInput = message.text; 
     await voice.textToSpeech(elevenLabsApiKey, voiceID, fileName, textInput);
-    // generate lipsync
     await lipSyncMessage(i);
     message.audio = await audioFileToBase64(fileName);
     message.lipsync = await readJsonTranscript(`audios/message_${i}.json`);
