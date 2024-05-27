@@ -93,6 +93,7 @@ const lipSyncMessage = async (messageIndex) => {
 
   await execCommand(`"${rhubarbPath}" -f json -o "${jsonFilePath}" "${outputFilePath}" -r phonetic`);
 
+  
   try {
       await fs.promises.access(inputFilePath);
 
