@@ -20,7 +20,10 @@ const app = express();
 app.use(express.json());
 
 const corsOptions = {
-  origin: ['https://r3f-virtual-girlfriend-frontend-sigma.vercel.app', 'http://localhost:5173'],
+  origin: [
+    "https://r3f-virtual-girlfriend-frontend-sigma.vercel.app",
+    "http://localhost:5173",
+  ],
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
@@ -52,7 +55,7 @@ const ensureDirectoryExists = async (dir) => {
   try {
     await fs.access(dir);
   } catch (error) {
-    if (error.code === 'ENOENT') {
+    if (error.code === "ENOENT") {
       await fs.mkdir(dir, { recursive: true });
     } else {
       throw error;
@@ -74,7 +77,9 @@ const lipSyncMessage = async (message) => {
     console.log(`Conversion done in ${new Date().getTime() - time}ms`);
 
     console.log(`Starting lip sync for message ${message}`);
-    await execCommand(`"${rhubarbPath}" -f json -o "${jsonFilePath}" "${outputFilePath}" -r phonetic`);
+    await execCommand(
+      `"${rhubarbPath}" -f json -o "${jsonFilePath}" "${outputFilePath}" -r phonetic`
+    );
     console.log(`Lip sync done in ${new Date().getTime() - time}ms`);
   } catch (error) {
     console.error(`Error in lip sync for message ${message}:`, error);
@@ -84,64 +89,41 @@ const lipSyncMessage = async (message) => {
 
 app.post("/chat", async (req, res) => {
   const userMessage = req.body.message;
-  if (!userMessage) {
-    res.send({
-      messages: [
-        {
-          text: "Hey dear... How was your day?",
-          audio: await audioFileToBase64("audios/intro_0.wav"),
-          lipsync: await readJsonTranscript("audios/intro_0.json"),
-          facialExpression: "smile",
-          animation: "Talking_1",
-        },
-        {
-          text: "I missed you so much... Please don't go for so long!",
-          audio: await audioFileToBase64("audios/intro_1.wav"),
-          lipsync: await readJsonTranscript("audios/intro_1.json"),
-          facialExpression: "sad",
-          animation: "Crying",
-        },
-      ],
-    });
-    return;
-  }
-  if (!elevenLabsApiKey || openai.apiKey === "-") {
-    res.send({
-      messages: [
-        {
-          text: "Please my dear, don't forget to add your API keys!",
-          audio: await audioFileToBase64("audios/api_0.wav"),
-          lipsync: await readJsonTranscript("audios/api_0.json"),
-          facialExpression: "angry",
-          animation: "Angry",
-        },
-        {
-          text: "You don't want to ruin Wawa Sensei with a crazy ChatGPT and ElevenLabs bill, right?",
-          audio: await audioFileToBase64("audios/api_1.wav"),
-          lipsync: await readJsonTranscript("audios/api_1.json"),
-          facialExpression: "smile",
-          animation: "Laughing",
-        },
-      ],
-    });
-    return;
-  }
 
-  const employmentKeywords = ["trabajo", "empleo", "contrato", "entrevista", "currículum", "salario", "vacante", "puestos", "agencia"];
+  const employmentKeywords = [
+    "trabajo",
+    "empleo",
+    "contrato",
+    "entrevista",
+    "currículum",
+    "salario",
+    "vacante",
+    "puestos",
+    "agencia",
+    "salta",
+    "cursos",
+    "curriculum",
+  ];
   const isEmploymentRelated = employmentKeywords.some((keyword) =>
     userMessage.toLowerCase().includes(keyword)
   );
 
   if (!isEmploymentRelated) {
-    const audioText = "Lo siento, solo puedo responder preguntas relacionadas con el empleo.";
+    const audioText =
+      "Estás interesado en algún servicio sobre la agencia de empleo?.";
     const audioFileName = "audios/message_non_employment_message.mp3";
 
     // Ensure the audios directory exists
     await ensureDirectoryExists(path.dirname(audioFileName));
 
     // Generate the audio file using ElevenLabs
-    await voice.textToSpeech(elevenLabsApiKey, voiceID, audioFileName, audioText);
-    
+    await voice.textToSpeech(
+      elevenLabsApiKey,
+      voiceID,
+      audioFileName,
+      audioText
+    );
+
     // Generate lipsync data for the audio file
     await lipSyncMessage("non_employment_message");
 
@@ -150,8 +132,10 @@ app.post("/chat", async (req, res) => {
         {
           text: audioText,
           audio: await audioFileToBase64(audioFileName),
-          lipsync: await readJsonTranscript("audios/message_non_employment_message.json"),
-          facialExpression: "sad",
+          lipsync: await readJsonTranscript(
+            "audios/message_non_employment_message.json"
+          ),
+          facialExpression: "smile",
           animation: "Idle",
         },
       ],
@@ -173,7 +157,7 @@ app.post("/chat", async (req, res) => {
         Eres un bot de la agencia de empleo de Madrid, y siempre responderás a temas relacionados con el empleo en español.
         Siempre responderás con un arreglo JSON de mensajes. Con un máximo de 3 mensajes.
         Cada mensaje tiene una propiedad de texto, facialExpression y animation.
-        Las diferentes expresiones faciales son: smile, sad, angry, surprised, funnyFace, y default.
+        Las diferentes expresiones faciales son: smile, funnyFace, y default.
         Las diferentes animaciones son: Talking_0, Talking_1, Talking_2, Crying, Laughing, Rumba, Idle, Terrified, y Angry.
         `,
       },
@@ -185,12 +169,12 @@ app.post("/chat", async (req, res) => {
   });
   let messages = JSON.parse(completion.choices[0].message.content);
   if (messages.messages) {
-    messages = messages.messages; 
+    messages = messages.messages;
   }
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
-    const fileName = `audios/message_${i}.mp3`; 
-    const textInput = message.text; 
+    const fileName = `audios/message_${i}.mp3`;
+    const textInput = message.text;
     await voice.textToSpeech(elevenLabsApiKey, voiceID, fileName, textInput);
     await lipSyncMessage(i);
     message.audio = await audioFileToBase64(fileName);
