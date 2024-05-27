@@ -14,7 +14,8 @@ const openai = new OpenAI({
 });
 
 const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
-const voiceID = "XrExE9yKIg1WjnnlVkGX";
+// Establece el voiceID aquí
+const voiceID = "HYlEvvU9GMan5YdjFYpg";
 
 const app = express();
 app.use(express.json());
@@ -35,7 +36,12 @@ app.get("/", (req, res) => {
 });
 
 app.get("/voices", async (req, res) => {
-  res.send(await voice.getVoices(elevenLabsApiKey));
+  try {
+    const voices = await voice.getVoices(elevenLabsApiKey);
+    res.send(voices);
+  } catch (error) {
+    res.status(500).send({ error: "Error fetching voices" });
+  }
 });
 
 const execCommand = (command) => {
@@ -146,7 +152,7 @@ app.post("/chat", async (req, res) => {
   const completion = await openai.chat.completions.create({
     model: "gpt-3.5-turbo-1106",
     max_tokens: 1000,
-    temperature: 0.6,
+    temperature: 0.7,
     response_format: {
       type: "json_object",
     },
@@ -155,10 +161,30 @@ app.post("/chat", async (req, res) => {
         role: "system",
         content: `
         Eres un bot de la agencia de empleo de Madrid, y siempre responderás a temas relacionados con el empleo en español.
+        La agencia de empleo de Madrid ofrece los siguientes servicios:
+        - Asesoramiento en la búsqueda de empleo
+        - Preparación de currículum vitae y cartas de presentación
+        - Simulaciones de entrevistas de trabajo
+        - Ofertas de empleo y gestión de vacantes
+        - Cursos de formación y capacitación
+        - Información sobre contratos laborales y salarios
+        - Orientación profesional y desarrollo de carrera
+        - Servicios de intermediación laboral
+  
         Siempre responderás con un arreglo JSON de mensajes. Con un máximo de 3 mensajes.
         Cada mensaje tiene una propiedad de texto, facialExpression y animation.
         Las diferentes expresiones faciales son: smile, funnyFace, y default.
-        Las diferentes animaciones son: Talking_0, Talking_1, Talking_2, Crying, Laughing, Rumba, Idle, Terrified, y Angry.
+        Las diferentes animaciones son: Talking_0, Talking_1, Talking_2,  Laughing, Rumba, Idle.
+  
+        Ejemplo de respuestas:
+        1. "La agencia de empleo ofrece servicios de asesoramiento personalizado para la búsqueda de empleo. ¿Te gustaría saber más sobre cómo mejorar tu currículum?"
+        2. "Podemos ayudarte a prepararte para una entrevista de trabajo mediante simulaciones y consejos específicos. ¿Estás interesado en este servicio?"
+        3. "Ofrecemos una variedad de cursos de formación que pueden ayudarte a adquirir nuevas habilidades y mejorar tus oportunidades laborales. ¿Te gustaría información sobre los cursos disponibles?"
+  
+        Ejemplos adicionales:
+        4. "¿Buscas información sobre los diferentes tipos de contratos laborales? Podemos proporcionarte detalles sobre contratos temporales, indefinidos y otros."
+        5. "Nuestro servicio de intermediación laboral puede conectarte con empleadores que buscan candidatos con tu perfil. ¿Te gustaría registrarte en nuestra base de datos?"
+        6. "Tenemos información actualizada sobre las ofertas de empleo disponibles en tu área. ¿Quieres que te enviemos una lista de vacantes recientes?"
         `,
       },
       {
@@ -167,6 +193,7 @@ app.post("/chat", async (req, res) => {
       },
     ],
   });
+
   let messages = JSON.parse(completion.choices[0].message.content);
   if (messages.messages) {
     messages = messages.messages;
