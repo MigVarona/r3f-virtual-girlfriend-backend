@@ -14,7 +14,7 @@ const openai = new OpenAI({
 });
 
 const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
-// Establece el voiceID aquí
+
 const voiceID = "HYlEvvU9GMan5YdjFYpg";
 
 const app = express();
@@ -29,7 +29,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-const port = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -74,8 +74,10 @@ const lipSyncMessage = async (message) => {
   const inputFilePath = `audios/message_${message}.mp3`;
   const outputFilePath = `audios/message_${message}.wav`;
   const jsonFilePath = `audios/message_${message}.json`;
+  //const rhubarbPath = "/usr/src/app/bi/rhubarb";
   const rhubarbPath = "./bin/rhubarb";
-  try {
+
+try {
     await fs.access(inputFilePath);
 
     console.log(`Starting conversion for message ${message}`);
@@ -116,7 +118,7 @@ app.post("/chat", async (req, res) => {
 
   if (!isEmploymentRelated) {
     const audioText =
-      "Estás interesado en algún servicio sobre la agencia de empleo?.";
+      "¿Estás interesado en algún servicio sobre la agencia de empleo?.";
     const audioFileName = "audios/message_non_employment_message.mp3";
 
     // Ensure the audios directory exists
@@ -152,8 +154,7 @@ app.post("/chat", async (req, res) => {
   const completion = await openai.chat.completions.create({
     model: "gpt-3.5-turbo-1106",
     max_tokens: 1000,
-    temperature: 0.7,
-    response_format: {
+    temperature: 1.0,    response_format: {
       type: "json_object",
     },
     messages: [
@@ -221,6 +222,6 @@ const audioFileToBase64 = async (file) => {
   return data.toString("base64");
 };
 
-app.listen(port, () => {
-  console.log(`Virtual Girlfriend listening on port ${port}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });
