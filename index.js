@@ -74,8 +74,8 @@ const lipSyncMessage = async (message) => {
   const inputFilePath = `audios/message_${message}.mp3`;
   const outputFilePath = `audios/message_${message}.wav`;
   const jsonFilePath = `audios/message_${message}.json`;
-  //const rhubarbPath = "/usr/src/app/bi/rhubarb";
-  const rhubarbPath = "./bin/rhubarb";
+ const rhubarbPath = "/usr/src/app/bi/rhubarb";
+ // const rhubarbPath = "./bin/rhubarb";
 
 try {
     await fs.access(inputFilePath);
